@@ -1,3 +1,15 @@
+defmodule Util2 do
+  def getImportantLines(lines, nr) do
+    inputs = [
+      {nr > 0, -1},
+      {true, 0},
+      {nr < length(lines) - 1, 1},
+    ]
+    Enum.reduce(inputs, [], fn {true, offset}, result ->
+      [Enum.at(lines, nr + offset) | result]
+    end)
+  end
+end
 
 Code.require_file("util.exs")
 
@@ -19,8 +31,17 @@ lines
 end)
 |> Enum.filter(fn {_, _, count} -> count == 2 end)
 |> Enum.map(fn {row, col, _} ->
-   # TODO
+  Util2.getImportantLines(lines, row)
+  |> Enum.flat_map(fn subline ->
+    Regex.scan(~r/\d+/, subline, return: :index)
+    |> Enum.map(fn [res] -> res end)
+    |> Enum.filter(fn {start, len} ->
+      {start, len} = Util.expandRange(lines, start, len)
+      col >= start and col <= start + len - 1
+    end)
+    |> Enum.map(fn {start, len} -> String.slice(subline, start, len) |> String.to_integer end)
+  end)
+  |> Enum.reduce(1, fn new, product -> new * product end)
 end)
-|> IO.inspect
-#|> Enum.sum
-#|> IO.puts
+|> Enum.sum
+|> IO.puts

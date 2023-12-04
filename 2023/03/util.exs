@@ -33,7 +33,7 @@ defmodule Util do
     end
   end
 
-  defp expandRange(lines, start, len) do
+  def expandRange(lines, start, len) do
     maxLen = lines
     |> Enum.at(0)
     |> String.length
