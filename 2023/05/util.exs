@@ -100,3 +100,11 @@ defmodule MappingChain do
     end
   end
 end
+
+defmodule SeedLocator do
+  def findNearest(mc, seeds) do
+    seeds
+    |> Enum.map(fn seed -> MappingChain.map(mc, seed) end)
+    |> Enum.min
+  end
+end
