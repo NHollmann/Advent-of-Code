@@ -11,5 +11,5 @@ seeds = String.split(seedStr, " ", trim: true) |> Enum.map(&String.to_integer/1)
 
 lines
 |> MappingChain.parse
-|> SeedLocator.findNearest(seeds)
+|> SeedLocator.find_nearest(seeds)
 |> IO.puts

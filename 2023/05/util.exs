@@ -18,6 +18,31 @@ defmodule MappingRange do
     end
   end
 
+  def map_range(mr, xs) do
+    first = mr.source_start
+    last = mr.source_start + mr.range_length
+    if xs != nil and xs.first >= first and xs.first < last and xs.last >= first and xs.last < last do
+      first = xs.first - mr.source_start + mr.destination_start
+      last = xs.last - mr.source_start + mr.destination_start
+      first..last
+    else
+      nil
+    end
+  end
+
+  def cut_range(mr, xs) do
+    first = mr.source_start
+    last = mr.source_start + mr.range_length
+    cond do
+      xs.first < first and xs.last >= first and xs.last < last -> {xs.first..first - 1, first..xs.last, nil}
+      xs.first >= first and xs.first < last and xs.last >= last -> {nil, xs.first..last - 1, last..xs.last}
+      xs.first < first and xs.last >= last -> {xs.first..first - 1, first..last - 1, last..xs.last}
+      xs.last < first -> {xs, nil, nil}
+      xs.first >= last -> {nil, nil, xs}
+      true -> {nil, xs, nil}
+    end
+  end
+
   def parse(line) do
     res = Regex.run(~r/^(\d+) (\d+) (\d+)$/, line)
     if res == nil do
@@ -39,6 +64,7 @@ defmodule FullMapping do
   ]
 
   def new(r) do
+    r = Enum.sort(r, fn x, y -> x.source_start < y.source_start end)
     %FullMapping{ranges: r}
   end
 
@@ -51,6 +77,24 @@ defmodule FullMapping do
         {:halt, res}
       end
     end)
+  end
+
+  def map_range(fm, xs) do
+    [mr | mrs] = fm.ranges
+    {l, m, r} = MappingRange.cut_range(mr, xs)
+    m = MappingRange.map_range(mr, m)
+    r = if r != nil do
+      if mrs != [] do
+        map_range(%FullMapping{ranges: mrs}, r)
+      else
+        [r]
+      end
+    else
+      []
+    end
+
+    [l, m | r]
+    |> Enum.filter(&(&1 != nil))
   end
 
   def parse(lines) do
@@ -86,6 +130,14 @@ defmodule MappingChain do
     Enum.reduce(mc.mappings, x, &FullMapping.map/2)
   end
 
+  def map_range(mc, xs) do
+    Enum.reduce(mc.mappings, [xs], fn m, y ->
+      Enum.flat_map(y, fn z ->
+        FullMapping.map_range(m, z)
+      end)
+    end)
+  end
+
   def parse(lines) do
     parse_internal(lines)
     |> new
@@ -102,9 +154,16 @@ defmodule MappingChain do
 end
 
 defmodule SeedLocator do
-  def findNearest(mc, seeds) do
+  def find_nearest(mc, seeds) do
     seeds
     |> Enum.map(fn seed -> MappingChain.map(mc, seed) end)
     |> Enum.min
+  end
+
+  def find_nearest_range(mc, seeds) do
+    MappingChain.map_range(mc, seeds)
+    |> Enum.reduce(:infinity, fn r, acc ->
+      if r.first < acc do r.first else acc end
+    end)
   end
 end

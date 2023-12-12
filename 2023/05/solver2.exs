@@ -18,6 +18,6 @@ Enum.map(0..seedRangeCount, fn idx ->
   len = Enum.at(seeds, idx * 2 + 1)
   start..(start + len - 1)
 end)
-|> Enum.map(fn r -> SeedLocator.findNearest(mc, r) end)
+|> Enum.map(fn r -> SeedLocator.find_nearest_range(mc, r) end)
 |> Enum.min
 |> IO.puts
